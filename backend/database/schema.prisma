@@ -39,19 +39,20 @@ model Tenant {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  users             User[]
-  escrows           Escrow[]
-  milestones        Milestone[]
-  reputationRecords ReputationRecord[]
-  disputes          Dispute[]
-  disputeEvidence   DisputeEvidence[]
-  disputeAppeals    DisputeAppeal[]
-  userProfiles      UserProfile[]
-  contractEvents    ContractEvent[]
-  payments          Payment[]
-  kycVerifications  KycVerification[]
-  adminAuditLogs    AdminAuditLog[]
-  auditLogs         AuditLog[]
+  users                User[]
+  escrows              Escrow[]
+  milestones           Milestone[]
+  reputationRecords    ReputationRecord[]
+  disputes             Dispute[]
+  disputeEvidence      DisputeEvidence[]
+  disputeAppeals       DisputeAppeal[]
+  userProfiles         UserProfile[]
+  contractEvents       ContractEvent[]
+  webhookSubscriptions WebhookSubscription[]
+  payments             Payment[]
+  kycVerifications     KycVerification[]
+  adminAuditLogs       AdminAuditLog[]
+  auditLogs            AuditLog[]
 
   @@map("tenants")
 }
@@ -59,18 +60,18 @@ model Tenant {
 // ── Users ─────────────────────────────────────────────────────────────────────
 
 model User {
-  id           Int      @id @default(autoincrement())
-  tenantId     String   @map("tenant_id")
-  email        String   @unique
-  password     String
-  walletAddress String? @unique @map("wallet_address")
-  role         String   @default("user") // user | admin | superadmin
-  mfaEnabled   Boolean  @default(false) @map("mfa_enabled")
-  mfaEnforced  Boolean  @default(false) @map("mfa_enforced") // Force MFA for high-value operations
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            Int      @id @default(autoincrement())
+  tenantId      String   @map("tenant_id")
+  email         String   @unique
+  password      String
+  walletAddress String?  @unique @map("wallet_address")
+  role          String   @default("user") // user | admin | superadmin
+  mfaEnabled    Boolean  @default(false) @map("mfa_enabled")
+  mfaEnforced   Boolean  @default(false) @map("mfa_enforced") // Force MFA for high-value operations
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
   refreshTokens RefreshToken[]
   mfaMethods    MfaMethod[]
   mfaAttempts   MfaAttempt[]
@@ -85,28 +86,28 @@ model User {
 // ── MFA Methods ───────────────────────────────────────────────────────────────
 
 model MfaMethod {
-  id            String    @id @default(cuid())
-  userId        Int       @map("user_id")
-  tenantId      String    @map("tenant_id")
-  type          MfaType   // TOTP | WEBAUTHN
-  name          String    // User-friendly name (e.g., "iPhone 15", "Authenticator App")
-  isActive      Boolean   @default(true) @map("is_active")
-  isPrimary     Boolean   @default(false) @map("is_primary")
-  
+  id        String  @id @default(cuid())
+  userId    Int     @map("user_id")
+  tenantId  String  @map("tenant_id")
+  type      MfaType // TOTP | WEBAUTHN
+  name      String // User-friendly name (e.g., "iPhone 15", "Authenticator App")
+  isActive  Boolean @default(true) @map("is_active")
+  isPrimary Boolean @default(false) @map("is_primary")
+
   // TOTP-specific fields
-  totpSecret    String?   @map("totp_secret") // Encrypted TOTP secret
+  totpSecret      String?  @map("totp_secret") // Encrypted TOTP secret
   totpBackupCodes String[] @default([]) @map("totp_backup_codes") // Encrypted backup codes
-  
+
   // WebAuthn-specific fields
-  credentialId  String?   @unique @map("credential_id") // Base64-encoded credential ID
-  publicKey     String?   @map("public_key") // Base64-encoded public key
-  counter       BigInt?   @default(0) // Signature counter for replay protection
-  transports    String[]  @default([]) // usb, nfc, ble, internal
-  aaguid        String?   // Authenticator AAGUID
-  
-  lastUsedAt    DateTime? @map("last_used_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  credentialId String?  @unique @map("credential_id") // Base64-encoded credential ID
+  publicKey    String?  @map("public_key") // Base64-encoded public key
+  counter      BigInt?  @default(0) // Signature counter for replay protection
+  transports   String[] @default([]) // usb, nfc, ble, internal
+  aaguid       String? // Authenticator AAGUID
+
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -120,15 +121,15 @@ model MfaMethod {
 // ── MFA Attempts (Brute-force Protection) ─────────────────────────────────────
 
 model MfaAttempt {
-  id          String   @id @default(cuid())
-  userId      Int      @map("user_id")
-  tenantId    String   @map("tenant_id")
-  methodType  MfaType  @map("method_type")
-  success     Boolean
-  ipAddress   String   @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  failureReason String? @map("failure_reason")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  userId        Int      @map("user_id")
+  tenantId      String   @map("tenant_id")
+  methodType    MfaType  @map("method_type")
+  success       Boolean
+  ipAddress     String   @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  failureReason String?  @map("failure_reason")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -164,18 +165,18 @@ enum MfaType {
 // ── Refresh Tokens ─────────────────────────────────────────────────────────────
 
 model RefreshToken {
-  id         String   @id @default(cuid())
-  userId     Int      @map("user_id")
-  tenantId   String   @map("tenant_id")
-  tokenHash  String   @unique @map("token_hash")
-  deviceInfo Json?    @map("device_info")
-  ipAddress  String?  @map("ip_address")
-  userAgent  String?  @map("user_agent")
-  isActive   Boolean  @default(true) @map("is_active")
-  expiresAt  DateTime @map("expires_at")
+  id         String    @id @default(cuid())
+  userId     Int       @map("user_id")
+  tenantId   String    @map("tenant_id")
+  tokenHash  String    @unique @map("token_hash")
+  deviceInfo Json?     @map("device_info")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  isActive   Boolean   @default(true) @map("is_active")
+  expiresAt  DateTime  @map("expires_at")
   lastUsedAt DateTime? @map("last_used_at")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -306,10 +307,12 @@ model Dispute {
   /// Whether this dispute was auto-resolved
   autoResolved     Boolean   @default(false) @map("auto_resolved")
 
-  tenant   Tenant            @relation(fields: [tenantId], references: [id])
-  escrow   Escrow            @relation(fields: [escrowId], references: [id])
-  evidence DisputeEvidence[]
-  appeals  DisputeAppeal[]
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
+  escrow       Escrow            @relation(fields: [escrowId], references: [id])
+  evidence     DisputeEvidence[]
+  appeals      DisputeAppeal[]
+  chatRoomKeys ChatRoomKey[]
+  chatMessages ChatMessage[]
 
   @@index([tenantId, raisedByAddress])
   @@index([tenantId, resolvedAt])
@@ -318,6 +321,11 @@ model Dispute {
   @@index([resolvedAt])
   // Composite index for listing disputes sorted by raisedAt with resolution filter
   @@index([resolvedAt, raisedAt(sort: Desc)])
+  // Covers the admin listDisputes query: filter by tenant + resolution status, sort by raisedAt.
+  // Without this, Postgres must seq-scan the entire tenant partition then sort.
+  @@index([tenantId, resolvedAt, raisedAt(sort: Desc)])
+  // Covers raisedBy filter + date sort within a tenant (dispute history per freelancer)
+  @@index([tenantId, raisedByAddress, raisedAt(sort: Desc)])
   @@map("disputes")
 }
 
@@ -455,7 +463,7 @@ model WebhookSubscription {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   deliveries WebhookDelivery[]
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([createdBy])
@@ -463,16 +471,16 @@ model WebhookSubscription {
 }
 
 model WebhookDelivery {
-  id             String   @id @default(cuid())
-  subscriptionId String   @map("subscription_id")
-  eventType      String   @map("event_type")
+  id             String    @id @default(cuid())
+  subscriptionId String    @map("subscription_id")
+  eventType      String    @map("event_type")
   payload        Json
-  status         String   @default("pending")
-  attempts       Int      @default(0)
-  responseCode   Int?     @map("response_code")
-  errorMessage   String?  @map("error_message")
+  status         String    @default("pending")
+  attempts       Int       @default(0)
+  responseCode   Int?      @map("response_code")
+  errorMessage   String?   @map("error_message")
   lastAttemptAt  DateTime? @map("last_attempt_at")
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
@@ -650,4 +658,82 @@ enum PaymentStatus {
   Completed
   Failed
   Refunded
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+/// Symmetric encryption key shared between parties to a dispute chat room.
+/// One row per (disputeId, participantAddress) pair so each participant
+/// stores their own encrypted copy.
+model ChatRoomKey {
+  id           Int      @id @default(autoincrement())
+  tenantId     String   @map("tenant_id")
+  disputeId    Int      @map("dispute_id")
+  /// Stellar address of the participant holding this key
+  address      String
+  /// AES-256-GCM key encrypted with the participant's public key (base64)
+  encryptedKey String   @map("encrypted_key")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@unique([disputeId, address])
+  @@index([tenantId, disputeId])
+  @@index([address])
+  @@map("chat_room_keys")
+}
+
+/// Individual message in a dispute chat room.
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  tenantId   String   @map("tenant_id")
+  disputeId  Int      @map("dispute_id")
+  /// Sender's Stellar address
+  sender     String
+  /// Encrypted ciphertext (AES-256-GCM, base64)
+  ciphertext String
+  /// AES-GCM nonce (base64, 12 bytes)
+  nonce      String
+  /// SHA-256 integrity check of the plaintext (hex) — verified client-side
+  checksum   String
+  sentAt     DateTime @default(now()) @map("sent_at")
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, disputeId, sentAt(sort: Asc)])
+  @@index([disputeId, sentAt(sort: Asc)])
+  @@index([sender])
+  @@map("chat_messages")
+}
+
+// ── Reputation Events ─────────────────────────────────────────────────────────
+
+/// Append-only ledger of every reputation-affecting event. The ReputationRecord
+/// aggregate is derived from these rows and can be rebuilt at any time.
+model ReputationEvent {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  String   @map("tenant_id")
+  /// Address whose reputation changed
+  address   String
+  /// Type of event: ESCROW_COMPLETED | DISPUTE_WON | DISPUTE_LOST | ESCROW_CANCELLED
+  eventType String   @map("event_type")
+  /// Signed integer delta applied to total_score
+  delta     Int
+  /// Related escrow (nullable for admin adjustments)
+  escrowId  BigInt?  @map("escrow_id")
+  /// Related dispute (nullable)
+  disputeId Int?     @map("dispute_id")
+  /// Ledger sequence when the on-chain event was finalised
+  ledger    BigInt?
+  /// Free-form metadata (resolution details, admin notes, etc.)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, address, createdAt(sort: Desc)])
+  @@index([address, createdAt(sort: Desc)])
+  @@index([tenantId, eventType])
+  @@index([escrowId])
+  @@index([disputeId])
+  @@index([createdAt(sort: Desc)])
+  @@map("reputation_events")
 }

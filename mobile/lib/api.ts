@@ -6,7 +6,7 @@
  */
 
 import axios from 'axios';
-import { storage } from './storage';
+import { storage, STORAGE_KEYS } from './storage';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -16,14 +16,26 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach Stellar address as identity header on every request
+// Attach JWT Bearer token on every request.
 api.interceptors.request.use((config) => {
-  const address = storage.getString('wallet_address');
-  if (address) {
-    config.headers['X-Stellar-Address'] = address;
+  const token = storage.getString(STORAGE_KEYS.AUTH_TOKEN);
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   return config;
 });
+
+// Clear stale credentials on 401 so the user is prompted to re-authenticate
+// rather than silently retrying with an expired token on every subsequent call.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      storage.delete(STORAGE_KEYS.AUTH_TOKEN);
+    }
+    return Promise.reject(error);
+  },
+);
 
 // ── Typed response helpers ────────────────────────────────────────────────────
 
